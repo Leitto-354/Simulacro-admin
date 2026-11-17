@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulacro de Administración de Empresas</title>
+<style>
+/* ===== Variables y base ===== */
+:root{--bg:#0a0a0a;--card:#111;--line:#1a1a1a;--ok:#22c55e;--bad:#ef4444;--mut:#9ca3af;--r:16px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html{background:var(--bg)}
+body{margin:0;min-height:100vh;background:var(--bg);color:#fff;
+  font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding:max(18px,env(safe-area-inset-top)) 16px max(32px,env(safe-area-inset-bottom))}
+main{max-width:640px;margin:0 auto}
+h1{font-size:clamp(1.7rem,6.5vw,2.4rem);line-height:1.15;margin:8px 0}
+h2{font-size:1.25rem;line-height:1.35;margin:18px 0 16px}
+.sub{color:var(--mut);margin:0 0 20px}
+.screen{display:none}
+.screen.on{display:block;animation:in .35s ease}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes slide{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+.slide{animation:slide .35s ease}
+
+/* ===== Componentes ===== */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-top:16px}
+.card p{margin:6px 0}
+textarea{width:100%;min-height:220px;background:#050505;color:#e5e7eb;border:1px solid #262626;border-radius:var(--r);
+  padding:14px;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;resize:vertical;margin-bottom:12px}
+textarea:focus{outline:2px solid var(--ok)}
+.btn{display:block;width:100%;margin-top:12px;padding:16px;border-radius:var(--r);border:1px solid transparent;
+  font-family:inherit;font-size:1rem;font-weight:600;cursor:pointer;transition:transform .15s,opacity .15s}
+.btn:active{transform:scale(.98)}
+.btn:focus-visible,.opt:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.main{background:var(--ok);color:#04130a}
+.sec{background:transparent;color:#fff;border-color:#2a2a2a}
+.err,.okmsg{border-radius:var(--r);padding:12px 16px;margin-top:4px;font-size:.95rem}
+.err{color:#fca5a5;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.4)}
+.err ul{margin:6px 0 0;padding-left:20px}
+.okmsg{color:var(--ok);background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.35);font-weight:600}
+.ex{background:#050505;border:1px solid #262626;border-radius:var(--r);padding:14px;margin:12px 0 0;
+  font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#d1d5db;overflow-x:auto;white-space:pre}
+.bar{height:10px;background:#1f1f1f;border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--ok);border-radius:99px;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.hist{display:flex;justify-content:space-between;gap:8px;color:var(--mut);font-size:.9rem;padding:6px 0;border-top:1px solid var(--line)}
+.hist b{color:#fff}
+
+/* ===== Examen ===== */
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;font-weight:600}
+.chip{color:var(--mut);font-size:.85rem;font-weight:400;text-align:right}
+.opt{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;background:var(--card);color:#fff;
+  border:1px solid #262626;border-radius:var(--r);padding:16px;margin-bottom:10px;font:inherit;cursor:pointer;transition:all .2s}
+.opt b{flex:none;width:28px;height:28px;border-radius:50%;background:#1f1f1f;display:grid;place-items:center;font-size:.85rem}
+.opt:disabled{cursor:default;color:#fff}
+.opt.ok{border-color:var(--ok);background:rgba(34,197,94,.12)}
+.opt.ok b{background:var(--ok);color:#04130a}
+.opt.bad{border-color:var(--bad);background:rgba(239,68,68,.12)}
+.opt.bad b{background:var(--bad)}
+.opt.dim{opacity:.45}
+.exp{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--ok);border-radius:var(--r);padding:14px 16px;margin:6px 0 4px}
+.exp.wrong{border-left-color:var(--bad)}
+.exp strong{display:block;margin-bottom:4px}
+.exp.good strong{color:var(--ok)}
+.exp.wrong strong{color:var(--bad)}
+.exp span{color:#d1d5db}
+
+/* ===== Resultados ===== */
+.center{text-align:center}
+.badge{display:inline-block;color:var(--ok);background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4);
+  border-radius:99px;padding:4px 16px;font-weight:700;letter-spacing:.06em;font-size:.8rem;margin:8px 0}
+.big{font-size:clamp(3.2rem,16vw,4.6rem);font-weight:800;color:var(--ok);line-height:1.1;margin:6px 0}
+.cols{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.col{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 6px;text-align:center}
+.col .n{font-size:1.6rem;font-weight:800}
+.col small{display:block;color:var(--mut)}
+.g{color:var(--ok)}.r{color:var(--bad)}
+.area{margin:14px 0}
+.area div:first-child{display:flex;justify-content:space-between;gap:10px;margin-bottom:6px}
+.area span:last-child{font-weight:700;color:var(--ok)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ===== Pantalla de acceso (clave) ===== */
+#gate{position:fixed;inset:0;z-index:1000;background:var(--bg);display:flex;align-items:center;justify-content:center;
+  padding:max(18px,env(safe-area-inset-top)) 16px max(18px,env(safe-area-inset-bottom))}
+#gate:not([hidden]) ~ main{display:none} /* mientras esté bloqueado, la app no se muestra */
+.gate-card{width:100%;max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:28px 22px;text-align:center}
+.gate-card h1{font-size:1.6rem;margin:0 0 6px}
+.gate-card input{width:100%;padding:14px;margin:0;background:#050505;color:#fff;border:1px solid #262626;border-radius:var(--r);
+  font:inherit;font-size:1.3rem;text-align:center;letter-spacing:.4em;text-indent:.4em}
+.gate-card input::placeholder{letter-spacing:normal;text-indent:0;color:var(--mut);font-size:1rem}
+.gate-card input:focus{outline:2px solid var(--ok)}
+.gate-err{color:var(--bad);font-weight:600;margin:10px 0 0}
+</style>
+</head>
+<body>
+<!-- ===== PANTALLA DE ACCESO (clave) ===== -->
+<div id="gate">
+  <div class="gate-card">
+    <h1>Acceso privado</h1>
+    <p class="sub">Ingresá la clave para entrar al simulacro</p>
+    <input id="gateClave" type="password" inputmode="numeric" autocomplete="off" placeholder="Clave" aria-label="Clave">
+    <p class="gate-err" id="gateError" role="alert" hidden>Clave incorrecta</p>
+    <button class="btn main" id="gateBtn">Entrar</button>
+  </div>
+</div>
+
+<main>
+
+<!-- ===== PANTALLA 1: INICIO ===== -->
+<section id="home" class="screen on">
+  <h1>Simulacro de Administración de Empresas</h1>
+  <p class="sub">Pegá el bloque de preguntas, cargalo y empezá a practicar.</p>
+  <textarea id="src" placeholder="Pegá acá el bloque de preguntas (JSON)" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+  <button class="btn main" id="btnLoad">Cargar simulacro</button>
+  <div id="msg" hidden></div>
+  <button class="btn main" id="btnStart" hidden>Comenzar simulacro</button>
+  <button class="btn sec" id="btnEx">Ver formato de ejemplo</button>
+  <pre class="ex" id="ex" hidden></pre>
+  <div id="stats"></div>
+</section>
+
+<!-- ===== PANTALLA 2: EXAMEN ===== -->
+<section id="exam" class="screen">
+  <div class="top"><span id="cnt"></span><span class="chip" id="area"></span></div>
+  <div class="bar"><i id="pbar"></i></div>
+  <div id="qcard">
+    <h2 id="enun"></h2>
+    <div id="ops"></div>
+    <div class="exp" id="exp" hidden></div>
+    <button class="btn main" id="btnNext">Siguiente</button>
+  </div>
+</section>
+
+<!-- ===== PANTALLA 3: RESULTADOS ===== -->
+<section id="result" class="screen">
+  <div id="res"></div>
+  <button class="btn main" id="btnRetry">Repetir simulacro</button>
+  <button class="btn sec" id="btnNew">Cargar otro bloque</button>
+</section>
+
+</main>
+
+<script>
+/* =====================================================
+   SIMULADOR DE EXÁMENES - Administración de Empresas
+   Un solo archivo, sin librerías, sin internet.
+   ===================================================== */
+
+/* ---------- CLAVE DE ACCESO ----------
+   Para cambiar la clave, editá solo el texto entre comillas.
+   Va entre comillas (como texto) para que no se pierdan los ceros del principio. */
+const CLAVE_ACCESO = "05012025";
+
+/* ---------- Utilidades ---------- */
+const $ = id => document.getElementById(id);
+const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = n => String(Math.round(n * 100) / 100).replace(".", ","); // coma decimal: 7,25
+const plural = (n, s, p) => n === 1 ? s : p;
+
+/* ---------- Constantes de puntuación ---------- */
+const PTS_OK = 0.5, PTS_BAD = -0.25;
+
+/* ---------- Estado ---------- */
+let preguntas = [];   // preguntas validadas
+let resp = [];        // respuesta por pregunta: índice elegido, o null si quedó sin responder
+let idx = 0;          // pregunta actual
+
+/* =====================================================
+   VALIDACIÓN DEL JSON
+   Recibe el texto pegado. Devuelve:
+     { ok: true,  preguntas: [...] }   si todo está bien
+     { ok: false, errores: ["..."] }   con mensajes claros si algo falla
+   Reglas por pregunta: enunciado, exactamente 4 opciones no vacías,
+   "correcta" entero entre 0 y 3, y explicación. "area" es opcional ("General").
+   ===================================================== */
+function validarPreguntas(texto) {
+  // La IA a veces devuelve el bloque dentro de ```json ... ```: lo limpiamos.
+  const limpio = texto.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+  if (!limpio) return { ok: false, errores: ["El cuadro está vacío. Pegá el bloque de preguntas."] };
+
+  let datos;
+  try { datos = JSON.parse(limpio); }
+  catch (e) { return { ok: false, errores: ["El texto no es un JSON válido (" + e.message + "). Revisá comas, corchetes y comillas."] }; }
+
+  if (!Array.isArray(datos)) return { ok: false, errores: ["El JSON tiene que ser una lista de preguntas: empieza con [ y termina con ]."] };
+  if (datos.length === 0) return { ok: false, errores: ["La lista está vacía: no hay preguntas."] };
+
+  const errores = [], validas = [];
+  datos.forEach((p, i) => {
+    const n = i + 1, antes = errores.length;
+    if (!p || typeof p !== "object" || Array.isArray(p)) { errores.push(`La pregunta ${n} no es un objeto { ... }.`); return; }
+
+    if (typeof p.pregunta !== "string" || !p.pregunta.trim()) errores.push(`La pregunta ${n} no tiene enunciado (falta el campo pregunta).`);
+
+    if (!Array.isArray(p.opciones) || p.opciones.length !== 4) errores.push(`La pregunta ${n} no tiene 4 opciones.`);
+    else if (p.opciones.some(o => typeof o !== "string" || !o.trim())) errores.push(`La pregunta ${n} tiene opciones vacías.`);
+
+    if (p.correcta === undefined || p.correcta === null) errores.push(`Falta el campo correcta en la pregunta ${n}.`);
+    else if (!Number.isInteger(p.correcta) || p.correcta < 0 || p.correcta > 3) errores.push(`En la pregunta ${n}, correcta debe ser un número entero de 0 a 3.`);
+
+    if (typeof p.explicacion !== "string" || !p.explicacion.trim()) errores.push(`La pregunta ${n} no tiene explicación (falta el campo explicacion).`);
+
+    if (errores.length === antes) {
+      validas.push({
+        pregunta: p.pregunta.trim(),
+        opciones: p.opciones.map(o => o.trim()),
+        correcta: p.correcta,
+        explicacion: p.explicacion.trim(),
+        area: (typeof p.area === "string" && p.area.trim()) || "General"
+      });
+    }
+  });
+  return errores.length ? { ok: false, errores } : { ok: true, preguntas: validas };
+}
+
+/* =====================================================
+   ALMACENAMIENTO (localStorage): mejor puntaje + últimos 5 simulacros
+   ===================================================== */
+const K_BEST = "simulacro_mejor", K_HIST = "simulacro_historial";
+const leer = (k, def) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? def : v; } catch (e) { return def; } };
+const guardarLS = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sin almacenamiento: la app sigue andando */ } };
+const fechaCorta = iso => new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+// Guarda el resultado; devuelve true si es un nuevo mejor puntaje.
+function guardarResultado(r) {
+  const iso = new Date().toISOString();
+  const hist = leer(K_HIST, []);
+  hist.unshift({ fecha: iso, puntaje: r.eq, preguntas: r.n });
+  guardarLS(K_HIST, hist.slice(0, 5));
+  const mejor = leer(K_BEST, null);
+  const nuevo = !mejor || r.eq > mejor.puntaje;
+  if (nuevo) guardarLS(K_BEST, { puntaje: r.eq, fecha: iso, preguntas: r.n });
+  return nuevo;
+}
+
+// Muestra mejor puntaje e historial en la pantalla de inicio.
+function pintarStats() {
+  const mejor = leer(K_BEST, null), hist = leer(K_HIST, []);
+  const box = $("stats");
+  if (!mejor) { box.innerHTML = ""; return; }
+  box.innerHTML = `<div class="card"><p class="sub" style="margin:0">Mejor puntaje</p>
+    <p class="g" style="font-size:1.8rem;font-weight:800;margin:0 0 10px">${fmt(mejor.puntaje)} / 10</p>` +
+    hist.map(h => `<div class="hist"><span>${fechaCorta(h.fecha)}</span><span><b>${fmt(h.puntaje)}/10</b> · ${h.preguntas} preguntas</span></div>`).join("") + `</div>`;
+}
+
+/* =====================================================
+   NAVEGACIÓN ENTRE PANTALLAS
+   ===================================================== */
+function mostrar(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id === id));
+  window.scrollTo(0, 0);
+}
+
+/* =====================================================
+   PANTALLA DE INICIO
+   ===================================================== */
+const EJEMPLO = [
+  { pregunta: "¿Qué mide el punto de equilibrio?",
+    opciones: ["El nivel de ventas donde no hay ganancia ni pérdida", "El margen bruto total", "La rotación de inventario", "El costo fijo unitario"],
+    correcta: 0,
+    explicacion: "El punto de equilibrio es el volumen de ventas en el que los ingresos igualan a los costos totales.",
+    area: "Costos y Presupuestos" },
+  { pregunta: "¿Cuál de estas funciones corresponde a la etapa de planeación?",
+    opciones: ["Evaluar el desempeño del personal", "Definir objetivos y estrategias", "Motivar a los equipos", "Controlar el presupuesto ejecutado"],
+    correcta: 1,
+    explicacion: "Planear es fijar los objetivos de la organización y decidir cómo alcanzarlos.",
+    area: "Fundamentos de la Administración" }
+];
+$("ex").textContent = JSON.stringify(EJEMPLO, null, 2);
+$("btnEx").onclick = () => { $("ex").hidden = !$("ex").hidden; };
+
+function limpiarMensaje() { $("msg").hidden = true; $("btnStart").hidden = true; }
+$("src").oninput = limpiarMensaje;
+
+$("btnLoad").onclick = () => {
+  const r = validarPreguntas($("src").value);
+  const box = $("msg");
+  box.hidden = false; box.innerHTML = "";
+  if (!r.ok) {
+    box.className = "err";
+    const lista = el("ul");
+    r.errores.slice(0, 8).forEach(e => lista.append(el("li", "", e)));
+    if (r.errores.length > 8) lista.append(el("li", "", `…y ${r.errores.length - 8} errores más.`));
+    box.append(el("strong", "", "No se pudo cargar el simulacro:"), lista);
+    $("btnStart").hidden = true;
+  } else {
+    preguntas = r.preguntas;
+    const n = preguntas.length, a = new Set(preguntas.map(p => p.area)).size;
+    box.className = "okmsg";
+    box.textContent = `${n} ${plural(n, "pregunta cargada", "preguntas cargadas")} · ${a} ${plural(a, "área", "áreas")}`;
+    $("btnStart").hidden = false;
+  }
+  box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+};
+$("btnStart").onclick = iniciar;
+
+/* =====================================================
+   PANTALLA DE EXAMEN
+   ===================================================== */
+function iniciar() { idx = 0; resp = []; $("pbar").style.width = "0"; mostrar("exam"); pintarPregunta(); }
+
+function pintarPregunta() {
+  const q = preguntas[idx], n = preguntas.length;
+  $("cnt").textContent = `Pregunta ${idx + 1} de ${n}`;
+  $("area").textContent = q.area;
+  $("enun").textContent = q.pregunta;
+  setTimeout(() => { $("pbar").style.width = ((idx + 1) / n * 100) + "%"; }, 30); // la barra se llena con animación
+
+  const ops = $("ops"); ops.innerHTML = "";
+  q.opciones.forEach((texto, i) => {
+    const b = el("button", "opt");
+    b.append(el("b", "", "ABCD"[i]), el("span", "", texto));
+    b.onclick = () => elegir(i);
+    ops.append(b);
+  });
+  $("exp").hidden = true;
+  $("btnNext").textContent = idx === n - 1 ? "Ver resultado" : "Siguiente";
+
+  // Transición suave entre preguntas
+  const card = $("qcard");
+  card.classList.remove("slide"); void card.offsetWidth; card.classList.add("slide");
+  window.scrollTo(0, 0);
+}
+
+function elegir(i) {
+  if (resp[idx] !== undefined) return;          // ya respondida: no se puede cambiar
+  const q = preguntas[idx];
+  resp[idx] = i;
+  [...$("ops").children].forEach((b, j) => {
+    b.disabled = true;                           // bloquea todas las opciones
+    if (j === q.correcta) b.classList.add("ok"); // la correcta siempre se ve en verde
+    else if (j === i) b.classList.add("bad");    // la elegida incorrecta, en rojo
+    else b.classList.add("dim");
+  });
+  const acierto = i === q.correcta;
+  const exp = $("exp");
+  exp.className = "exp " + (acierto ? "good" : "wrong");
+  exp.innerHTML = "";
+  exp.append(el("strong", "", acierto ? "✓ Correcta" : "✗ Incorrecta"), el("span", "", q.explicacion));
+  exp.hidden = false;
+  exp.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+$("btnNext").onclick = () => {
+  if (resp[idx] === undefined) resp[idx] = null; // sin responder = 0 puntos
+  if (idx < preguntas.length - 1) { idx++; pintarPregunta(); } else mostrarResultados(); // no hay "volver"
+};
+
+/* =====================================================
+   PUNTUACIÓN Y PANTALLA DE RESULTADOS
+   Correcta +0,5 · Incorrecta −0,25 · Sin responder 0
+   Equivalencia /10 = bruto / (preguntas × 0,5) × 10, un decimal, mínimo 0
+   ===================================================== */
+function calcular() {
+  let c = 0, w = 0, u = 0;
+  const areas = {};
+  preguntas.forEach((q, i) => {
+    const a = areas[q.area] || (areas[q.area] = { c: 0, t: 0 });
+    a.t++;
+    if (resp[i] === null || resp[i] === undefined) u++;
+    else if (resp[i] === q.correcta) { c++; a.c++; }
+    else w++;
+  });
+  const n = preguntas.length, bruto = c * PTS_OK + w * PTS_BAD, max = n * PTS_OK;
+  const eq = Math.max(0, Math.round(bruto / max * 100) / 10);
+  return { c, w, u, n, bruto, max, eq, pct: Math.round(c / n * 100), areas };
+}
+
+function mostrarResultados() {
+  const r = calcular();
+  const nuevoMejor = guardarResultado(r);
+  const descontados = r.w * -PTS_BAD;
+
+  const filasAreas = Object.entries(r.areas).map(([nombre, a]) => `
+    <div class="area">
+      <div><span>${esc(nombre)}</span><span>${a.c}/${a.t}</span></div>
+      <div class="bar"><i data-w="${a.c / a.t * 100}"></i></div>
+    </div>`).join("");
+
+  $("res").innerHTML = `
+    <div class="center">
+      <h1>Resultado del simulacro</h1>
+      ${r.eq === 10 ? '<div class="badge">EXAMEN PERFECTO</div>' : ""}
+      <div class="big">${fmt(r.eq)} / 10</div>
+      <p style="margin:0"><b>${r.c}/${r.n} correctas</b></p>
+      <p class="sub" style="margin:0 0 14px">${r.pct} % de respuestas acertadas</p>
+      ${nuevoMejor ? '<p class="g" style="margin:0 0 12px;font-weight:600">★ Nuevo mejor puntaje</p>' : ""}
+    </div>
+    <div class="bar"><i data-w="${r.pct}"></i></div>
+    <div class="cols">
+      <div class="col"><div class="n g">${r.c}</div><small>Correctas</small></div>
+      <div class="col"><div class="n ${r.w ? "r" : ""}">${r.w}</div><small>Incorrectas</small></div>
+      <div class="col"><div class="n ${r.w ? "r" : ""}">${r.w ? "−" : ""}${fmt(descontados)}</div><small>Descontadas</small></div>
+    </div>
+    <div class="card">
+      <p class="sub" style="margin:0">Sistema de puntuación</p>
+      <p><b>+0,5</b> por correcta y <b>−0,25</b> por incorrecta</p>
+      <p>Puntaje bruto: <b>${fmt(r.bruto)}/${fmt(r.max)}</b></p>
+      <p>Equivalencia proporcional: <b class="g">${fmt(r.eq)}/10</b></p>
+      ${r.u ? `<p class="sub" style="margin:6px 0 0">Sin responder: ${r.u} (0 puntos)</p>` : ""}
+      <p class="${r.w ? "" : "g"}" style="margin-top:10px;font-weight:600">${r.w
+        ? `Se descontaron ${fmt(descontados)} puntos por ${r.w} ${plural(r.w, "incorrecta", "incorrectas")}.`
+        : "No hubo ninguna penalización. Ni una."}</p>
+    </div>
+    <div class="card">
+      <p class="sub" style="margin:0">Balance por áreas</p>
+      ${filasAreas}
+    </div>`;
+
+  mostrar("result");
+  // Las barras se llenan con animación una vez visible la pantalla
+  setTimeout(() => document.querySelectorAll("#res .bar i").forEach(i => { i.style.width = i.dataset.w + "%"; }), 80);
+}
+
+$("btnRetry").onclick = iniciar;
+$("btnNew").onclick = () => {
+  $("src").value = ""; limpiarMensaje(); preguntas = [];
+  pintarStats(); mostrar("home");
+};
+
+/* ---------- Arranque ---------- */
+pintarStats();
+
+/* =====================================================
+   PANTALLA DE ACCESO
+   Si localStorage ya tiene accesoOK = "1", no vuelve a pedir la clave.
+   ===================================================== */
+(function () {
+  const gate = $("gate"), campo = $("gateClave"), error = $("gateError");
+  const yaEntro = () => { try { return localStorage.getItem("accesoOK") === "1"; } catch (e) { return false; } };
+  if (yaEntro()) { gate.hidden = true; return; }
+
+  function entrar() {
+    if (campo.value.trim() === CLAVE_ACCESO) {
+      try { localStorage.setItem("accesoOK", "1"); } catch (e) { /* sin almacenamiento: entra igual esta vez */ }
+      gate.hidden = true;                              // muestra la app normal
+    } else {
+      error.hidden = false; campo.value = ""; campo.focus(); // "Clave incorrecta" y campo limpio
+    }
+  }
+  $("gateBtn").onclick = entrar;
+  campo.onkeydown = e => { if (e.key === "Enter") entrar(); };  // también con Enter
+  campo.oninput = () => { error.hidden = true; };
+  campo.focus();
+})();
+</script>
+</body>
+</html>
